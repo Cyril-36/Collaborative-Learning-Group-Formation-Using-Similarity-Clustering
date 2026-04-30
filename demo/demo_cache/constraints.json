@@ -1,0 +1,14 @@
+{
+  "mode_a": {
+    "size_violations": 0,
+    "cluster_complementarity_violations": 81,
+    "fairness_refinement": "evaluated_only",
+    "engagement_refinement": "evaluated_only"
+  },
+  "mode_b": {
+    "size_violations": 0,
+    "cluster_complementarity_violations": 0,
+    "fairness_refinement": "evaluated_only",
+    "engagement_refinement": "evaluated_only"
+  }
+}

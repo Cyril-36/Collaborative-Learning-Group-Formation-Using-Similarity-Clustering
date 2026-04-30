@@ -1,0 +1,13 @@
+# INT-396 visual system — Variant B (Stripe Press), locked 2026-04-29.
+# See design.md §1 for the token rationale.
+
+[theme]
+base                     = "light"
+primaryColor             = "#C8553D"
+backgroundColor          = "#FFFFFF"
+secondaryBackgroundColor = "#FAFAF7"
+textColor                = "#0A0A0A"
+font                     = "serif"
+
+[server]
+runOnSave = true

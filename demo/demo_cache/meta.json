@@ -1,0 +1,15 @@
+{
+  "n_learners": 344,
+  "n_features": 35,
+  "n_groups": 86,
+  "group_size": 4,
+  "presentation": "AAA_2014J",
+  "winner_config": "C05",
+  "winner_reducer": "umap",
+  "winner_clusterer": "kmeans",
+  "bootstrap_b": 30,
+  "bootstrap_frac": 0.8,
+  "random_baselines": 100,
+  "sample_n": null,
+  "fast_run": false
+}

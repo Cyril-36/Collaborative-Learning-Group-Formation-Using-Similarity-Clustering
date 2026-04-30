@@ -1,0 +1,3 @@
+presentation,n_learners,n_features,winner_config,winner_reducer,winner_clusterer,winner_k,winner_bootstrap_ari,mode_b_complementarity,mode_b_cluster_coverage,mode_b_outcome_diversity,mode_b_high_risk_group_rate
+AAA_2013J,120,34,C07,umap,agglo,3,0.6846419068289866,0.75,1.0,0.5333333333333333,0.0
+AAA_2014J,120,35,C05,umap,kmeans,3,0.6661177160647009,0.725,0.9666666666666668,0.5166666666666667,0.0

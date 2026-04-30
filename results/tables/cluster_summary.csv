@@ -1,0 +1,4 @@
+cluster,size,top_positive_features,top_negative_features,interpretive_label
+0,128,"active_days (+1.00z), total_clicks (+0.85z), clicks_oucontent (+0.84z)","first_click_day (-0.42z), registration_day (-0.36z), studied_credits (-0.30z)",High-engagement learners
+1,159,"n_assessments_submitted (+0.31z), first_click_day (+0.30z), last_click_day (+0.25z)","total_clicks (-0.46z), collaborative_active_days (-0.46z), active_days (-0.45z)",High-performing learners
+2,57,"no_submissions (+0.66z), mean_submission_lateness (+0.65z), registration_day (+0.23z)","n_assessments_submitted (-1.85z), last_click_day (-1.74z), engagement_span (-1.74z)",At-risk low-engagement learners
