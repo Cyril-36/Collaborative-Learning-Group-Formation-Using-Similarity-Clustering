@@ -11,7 +11,7 @@ from sklearn.metrics import adjusted_rand_score
 
 from .clusterers import CLUSTERERS
 from .config import BOOTSTRAP_B, BOOTSTRAP_FRAC, N_JOBS, SEED
-from .multi_config import CONFIGS
+from .multi_config import CONFIGS, score_labels
 from .reducers import REDUCERS
 
 
@@ -21,7 +21,7 @@ def _bootstrap_one(
     clusterer_name: str,
     b: int,
     frac: float,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, dict[str, float]]:
     rng = np.random.default_rng(SEED + b)
     n = X.shape[0]
     sample_size = max(10, min(n, int(round(n * frac))))
@@ -29,7 +29,8 @@ def _bootstrap_one(
     X_sub = X[idx]
     X_red, _ = REDUCERS[reducer_name](X_sub)
     labels, _ = CLUSTERERS[clusterer_name](X_red)
-    return idx, np.asarray(labels, dtype=int)
+    labels = np.asarray(labels, dtype=int)
+    return idx, labels, score_labels(X_red, labels, clusterer_name)
 
 
 def stability_for_config(
@@ -39,9 +40,9 @@ def stability_for_config(
     B: int = BOOTSTRAP_B,
     frac: float = BOOTSTRAP_FRAC,
     n_jobs: int = N_JOBS,
-) -> tuple[float, float, list[float]]:
+) -> tuple[float, float, list[float], dict[str, float]]:
     if B < 2:
-        return 1.0, 0.0, [1.0]
+        return 1.0, 0.0, [1.0], {}
 
     runs = Parallel(n_jobs=n_jobs)(
         delayed(_bootstrap_one)(X, reducer_name, clusterer_name, b, frac) for b in range(B)
@@ -49,8 +50,8 @@ def stability_for_config(
 
     aris: list[float] = []
     for i, j in combinations(range(B), 2):
-        idx_i, lab_i = runs[i]
-        idx_j, lab_j = runs[j]
+        idx_i, lab_i, _ = runs[i]
+        idx_j, lab_j, _ = runs[j]
         common = np.intersect1d(idx_i, idx_j)
         if len(common) < 10:
             continue
@@ -60,9 +61,23 @@ def stability_for_config(
         labels_j = np.array([map_j[idx] for idx in common])
         aris.append(float(adjusted_rand_score(labels_i, labels_j)))
 
+    metric_ci: dict[str, float] = {}
+    for metric in ["silhouette", "davies_bouldin", "calinski_harabasz"]:
+        values = np.array([scores.get(metric, np.nan) for _, _, scores in runs], dtype=float)
+        values = values[np.isfinite(values)]
+        if len(values):
+            lo, hi = np.percentile(values, [2.5, 97.5])
+            metric_ci[f"{metric}_bootstrap_mean"] = float(values.mean())
+            metric_ci[f"{metric}_ci_low"] = float(lo)
+            metric_ci[f"{metric}_ci_high"] = float(hi)
+        else:
+            metric_ci[f"{metric}_bootstrap_mean"] = float("nan")
+            metric_ci[f"{metric}_ci_low"] = float("nan")
+            metric_ci[f"{metric}_ci_high"] = float("nan")
+
     if not aris:
-        return float("nan"), float("nan"), []
-    return float(np.mean(aris)), float(np.std(aris)), aris
+        return float("nan"), float("nan"), [], metric_ci
+    return float(np.mean(aris)), float(np.std(aris)), aris, metric_ci
 
 
 def run_all(
@@ -73,17 +88,17 @@ def run_all(
 ) -> pd.DataFrame:
     rows = []
     for cid, reducer_name, clusterer_name in CONFIGS:
-        mean, sd, aris = stability_for_config(X, reducer_name, clusterer_name, B, frac, n_jobs)
-        rows.append(
-            {
-                "config_id": cid,
-                "reducer": reducer_name,
-                "clusterer": clusterer_name,
-                "bootstrap_ari_mean": mean,
-                "bootstrap_ari_std": sd,
-                "bootstrap_ari_min": float(np.min(aris)) if aris else float("nan"),
-                "bootstrap_ari_max": float(np.max(aris)) if aris else float("nan"),
-                "bootstrap_ari_dist": aris,
-            }
-        )
+        mean, sd, aris, metric_ci = stability_for_config(X, reducer_name, clusterer_name, B, frac, n_jobs)
+        row = {
+            "config_id": cid,
+            "reducer": reducer_name,
+            "clusterer": clusterer_name,
+            "bootstrap_ari_mean": mean,
+            "bootstrap_ari_std": sd,
+            "bootstrap_ari_min": float(np.min(aris)) if aris else float("nan"),
+            "bootstrap_ari_max": float(np.max(aris)) if aris else float("nan"),
+            "bootstrap_ari_dist": aris,
+        }
+        row.update(metric_ci)
+        rows.append(row)
     return pd.DataFrame(rows)

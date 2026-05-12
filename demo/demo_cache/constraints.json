@@ -1,14 +1,24 @@
 {
   "mode_a": {
     "size_violations": 0,
-    "cluster_complementarity_violations": 81,
+    "cluster_complementarity_violations": 82,
+    "size_penalty": 0.0,
+    "complementarity_penalty": 0.9647058823529412,
+    "fairness_penalty": 0.5911422708618332,
+    "engagement_penalty": 0.20703440491557457,
     "fairness_refinement": "evaluated_only",
-    "engagement_refinement": "evaluated_only"
+    "engagement_refinement": "evaluated_only",
+    "complementarity_refinement": "not_applied_mode_objective"
   },
   "mode_b": {
     "size_violations": 0,
     "cluster_complementarity_violations": 0,
-    "fairness_refinement": "evaluated_only",
-    "engagement_refinement": "evaluated_only"
+    "size_penalty": 0.0,
+    "complementarity_penalty": 0.0,
+    "fairness_penalty": 0.49868171984856685,
+    "engagement_penalty": 0.05613280646146409,
+    "fairness_refinement": "soft_penalty",
+    "engagement_refinement": "soft_penalty",
+    "complementarity_refinement": "hard_constraint"
   }
 }

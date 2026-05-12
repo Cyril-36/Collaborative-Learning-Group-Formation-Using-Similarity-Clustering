@@ -1,0 +1,8 @@
+[
+  "mean_tma_score",
+  "weighted_score",
+  "n_assessments_submitted",
+  "mean_submission_lateness",
+  "score_trajectory_slope",
+  "no_submissions"
+]

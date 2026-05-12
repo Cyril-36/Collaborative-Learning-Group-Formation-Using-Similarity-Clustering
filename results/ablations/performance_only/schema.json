@@ -1,0 +1,38 @@
+{
+  "dataset_name": "OULAD AAA_2014J",
+  "adapter_name": "oulad",
+  "source_id_col": "id_student",
+  "id_col": "id_student",
+  "feature_cols": [
+    "mean_tma_score",
+    "weighted_score",
+    "n_assessments_submitted",
+    "mean_submission_lateness",
+    "score_trajectory_slope",
+    "no_submissions"
+  ],
+  "numeric_feature_cols": [
+    "mean_tma_score",
+    "weighted_score",
+    "n_assessments_submitted",
+    "mean_submission_lateness",
+    "score_trajectory_slope",
+    "no_submissions"
+  ],
+  "categorical_feature_cols": [],
+  "fairness_cols": [
+    "imd_band_ord"
+  ],
+  "engagement_col": "total_clicks",
+  "performance_col": "weighted_score",
+  "outcome_col": "final_result",
+  "stratification_col": "imd_band_ord",
+  "display_cols": [
+    "total_clicks",
+    "weighted_score",
+    "imd_band_ord",
+    "collaborative_clicks",
+    "collaboration_click_ratio",
+    "final_result"
+  ]
+}

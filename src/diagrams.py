@@ -39,8 +39,8 @@ def fig1_pipeline(output_path: Path) -> None:
     # Data layer
     with g.subgraph(name="cluster_data") as s:
         s.attr(rank="same")
-        s.node("oulad", "OULAD CSVs\n(7 tables)")
-        s.node("ingest", "Ingest\n& scope filter")
+        s.node("oulad", "Learner dataset")
+        s.node("ingest", "Dataset\nadapter")
 
     # Feature engineering
     g.node("features", "Feature\nengineering\n(35 features)")
@@ -165,7 +165,7 @@ def fig6_method_overview(output_path: Path) -> None:
     """Overall method flowchart — high-level view for patent spec."""
     g = _base_graph("fig6_method", rankdir="TB")
 
-    g.node("input", "Multi-table\nlearner data\n(OULAD)", shape="cylinder",
+    g.node("input", "Learner\ndataset", shape="cylinder",
            style="filled", fillcolor=SURFACE)
     g.node("fe", "Feature engineering\n(demographic + engagement\n+ performance + collaboration)")
     g.node("scale", "Standardisation\n+ imputation")

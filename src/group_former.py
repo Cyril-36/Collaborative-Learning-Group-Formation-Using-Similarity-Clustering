@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 
-from .config import FAIRNESS_ATTR, GROUP_SIZE, SEED, SIZE_TOLERANCE
+from .config import GROUP_SIZE, SEED, SIZE_TOLERANCE
 
 
 def _balanced_chunks(order: list[int], G: int = GROUP_SIZE) -> list[list[int]]:
@@ -67,11 +67,12 @@ def form_homogeneous(
     return [g for g in _add_leftovers(groups, leftovers, G) if g]
 
 
-def form_heterogeneous(
+def form_heterogeneous_round_robin(
     labels: np.ndarray,
     G: int = GROUP_SIZE,
     seed: int = SEED,
 ) -> list[list[int]]:
+    """Form heterogeneous groups by cycling through available clusters."""
     rng = np.random.default_rng(seed)
     labels = np.asarray(labels)
     clusters = sorted(set(labels.tolist()) - {-1})
@@ -96,6 +97,75 @@ def form_heterogeneous(
     return [group for group in groups if group]
 
 
+def form_heterogeneous_minority_first(
+    labels: np.ndarray,
+    G: int = GROUP_SIZE,
+    seed: int = SEED,
+) -> list[list[int]]:
+    """Form heterogeneous groups while maximizing minority-cluster coverage.
+
+    The smallest non-noise cluster places one learner into as many groups as it
+    can support before the remaining seats are filled round-robin. This pushes
+    heterogeneous groups toward the complementarity ceiling imposed by the
+    smallest cluster size.
+    """
+    rng = np.random.default_rng(seed)
+    labels = np.asarray(labels)
+    clusters = sorted(set(labels.tolist()) - {-1})
+    if not clusters:
+        clusters = sorted(set(labels.tolist()))
+
+    pools = {
+        cluster: list(map(int, rng.permutation(np.where(labels == cluster)[0])))
+        for cluster in clusters
+    }
+    n_total = sum(len(pool) for pool in pools.values())
+    if n_total == 0:
+        return []
+    n_groups = max(1, math.ceil(n_total / G))
+    groups = [[] for _ in range(n_groups)]
+
+    minority = min(clusters, key=lambda c: (len(pools[c]), c))
+    for group_idx in range(min(n_groups, len(pools[minority]))):
+        groups[group_idx].append(int(pools[minority].pop(0)))
+
+    remaining = sum(len(pool) for pool in pools.values())
+    group_idx = 0
+    while remaining:
+        if len(groups[group_idx]) >= G:
+            group_idx = (group_idx + 1) % n_groups
+            continue
+
+        used_in_group = set(labels[groups[group_idx]].tolist()) if groups[group_idx] else set()
+        ordered_clusters = sorted(
+            clusters,
+            key=lambda c: (c in used_in_group, -len(pools[c]), c),
+        )
+        chosen_cluster = next((c for c in ordered_clusters if pools[c]), None)
+        if chosen_cluster is None:
+            break
+
+        groups[group_idx].append(int(pools[chosen_cluster].pop(0)))
+        remaining -= 1
+        group_idx = (group_idx + 1) % n_groups
+
+    return [group for group in groups if group]
+
+
+def form_heterogeneous(
+    labels: np.ndarray,
+    G: int = GROUP_SIZE,
+    seed: int = SEED,
+) -> list[list[int]]:
+    """Default heterogeneous mode.
+
+    The minority-first variant is kept for ablation, but the round-robin
+    initializer plus the max-diversity refinement guard produced the better
+    accepted trade-off on the OULAD reference run.
+    """
+    return form_heterogeneous_round_robin(labels, G, seed)
+
+
 def form_random(n_learners: int, G: int = GROUP_SIZE, seed: int = SEED) -> list[list[int]]:
     rng = np.random.default_rng(seed)
     return _balanced_chunks(list(map(int, rng.permutation(n_learners))), G)
@@ -104,15 +174,16 @@ def form_random(n_learners: int, G: int = GROUP_SIZE, seed: int = SEED) -> list[
 def form_stratified(
     feature_df: pd.DataFrame,
     G: int = GROUP_SIZE,
-    attr: str = FAIRNESS_ATTR,
+    attr: str | None = None,
+    performance_col: str | None = None,
     seed: int = SEED,
 ) -> list[list[int]]:
     rng = np.random.default_rng(seed)
     df = feature_df.reset_index(drop=True).copy()
-    if attr in df.columns and df[attr].nunique(dropna=True) > 1:
+    if attr and attr in df.columns and df[attr].nunique(dropna=True) > 1:
         strata = df[attr].fillna("missing")
-    elif "weighted_score" in df.columns and df["weighted_score"].nunique(dropna=True) > 1:
-        strata = pd.qcut(df["weighted_score"], q=4, duplicates="drop")
+    elif performance_col and performance_col in df.columns and df[performance_col].nunique(dropna=True) > 1:
+        strata = pd.qcut(df[performance_col], q=4, duplicates="drop")
     else:
         strata = pd.Series(["all"] * len(df), index=df.index)
 

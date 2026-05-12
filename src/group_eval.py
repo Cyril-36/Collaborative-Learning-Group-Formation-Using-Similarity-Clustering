@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import pdist
 
-from .config import FAIRNESS_ATTR
+from .adapters.base import DatasetSchema
 
 
 OUTCOME_SCORE = {
@@ -104,9 +104,13 @@ def high_risk_group_rate(outcomes: pd.Series, groups: list[list[int]], threshold
 
 
 def outcome_balance(outcomes: pd.Series, groups: list[list[int]]) -> float:
-    scores = outcomes.map(OUTCOME_SCORE).astype(float)
-    if scores.isna().all():
-        return 0.0
+    outcomes = outcomes.reset_index(drop=True)
+    if pd.api.types.is_numeric_dtype(outcomes):
+        scores = pd.to_numeric(outcomes, errors="coerce").astype(float)
+    else:
+        scores = outcomes.map(OUTCOME_SCORE).astype(float)
+        if scores.isna().all():
+            return 0.0
     scores = scores.fillna(scores.median())
     sd = float(scores.std(ddof=0))
     if sd == 0 or np.isnan(sd):
@@ -122,20 +126,33 @@ def evaluate_all(
     groups: list[list[int]],
     feature_df: pd.DataFrame,
     G: int,
-    attr: str = FAIRNESS_ATTR,
+    schema: DatasetSchema | None = None,
+    attr: str | None = None,
 ) -> dict[str, float]:
-    engagement = feature_df["total_clicks"].to_numpy() if "total_clicks" in feature_df else np.zeros(len(feature_df))
-    fairness_attr = feature_df[attr] if attr in feature_df else pd.Series([0] * len(feature_df))
     metrics = {
         "intra_group_distance": intra_group_distance(X_red, groups),
         "inter_group_variance": inter_group_variance(X_red, groups),
         "complementarity": complementarity(labels, groups, G),
-        "engagement_balance": engagement_balance(engagement, groups),
-        "demographic_fairness": demographic_fairness(fairness_attr, groups),
         "cluster_coverage": cluster_coverage(labels, groups),
     }
-    if "final_result" in feature_df.columns:
-        outcomes = feature_df["final_result"]
+
+    engagement_col = schema.engagement_col if schema else None
+    if engagement_col and engagement_col in feature_df.columns:
+        metrics["engagement_balance"] = engagement_balance(feature_df[engagement_col].to_numpy(), groups)
+
+    fairness_cols = list(schema.fairness_cols) if schema else ([attr] if attr else [])
+    fairness_values = []
+    for fairness_col in fairness_cols:
+        if fairness_col in feature_df.columns:
+            value = demographic_fairness(feature_df[fairness_col], groups)
+            metrics[f"demographic_fairness_{fairness_col}"] = value
+            fairness_values.append(value)
+    if fairness_values:
+        metrics["demographic_fairness"] = float(np.mean(fairness_values))
+
+    outcome_col = schema.outcome_col if schema else None
+    if outcome_col and outcome_col in feature_df.columns:
+        outcomes = feature_df[outcome_col]
         metrics.update(
             {
                 "outcome_diversity": outcome_diversity(outcomes, groups, G),

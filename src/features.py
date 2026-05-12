@@ -203,7 +203,7 @@ def performance_features(assessment: pd.DataFrame, assessments: pd.DataFrame) ->
         if len(valid_slope) >= 2 and valid_slope["date_submitted"].nunique() >= 2:
             slope = float(np.polyfit(valid_slope["date_submitted"], valid_slope["score"], 1)[0])
         else:
-            slope = 0.0
+            slope = np.nan
         return pd.Series(
             {
                 "mean_tma_score": tma["score"].mean() if len(tma) else np.nan,

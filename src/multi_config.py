@@ -46,7 +46,7 @@ def score_labels(X_red: np.ndarray, labels: np.ndarray, clusterer_name: str) -> 
     return row
 
 
-def run_all(X: np.ndarray):
+def run_all(X: np.ndarray, k_sweep: list[int] | None = None):
     reductions: dict[str, np.ndarray] = {}
     rows = []
     labels_by_config: dict[str, np.ndarray] = {}
@@ -56,7 +56,12 @@ def run_all(X: np.ndarray):
         reductions[reducer_name] = X_red
 
         for cid, _, clusterer_name in [cfg for cfg in CONFIGS if cfg[1] == reducer_name]:
-            labels, info = CLUSTERERS[clusterer_name](X_red)
+            # Pass k_sweep override only to clusterers that accept it (kmeans/gmm/agglo);
+            # HDBSCAN derives k from density, not a sweep.
+            if k_sweep is not None and clusterer_name in {"kmeans", "gmm", "agglo"}:
+                labels, info = CLUSTERERS[clusterer_name](X_red, k_sweep=k_sweep)
+            else:
+                labels, info = CLUSTERERS[clusterer_name](X_red)
             labels = np.asarray(labels, dtype=int)
             labels_by_config[cid] = labels
 

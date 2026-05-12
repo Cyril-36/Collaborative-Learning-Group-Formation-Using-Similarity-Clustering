@@ -1,0 +1,8 @@
+tier,criterion,value,pass
+Tier 1,Pipeline completes on full 649 rows,completed,True
+Tier 1,Winner passes ARI >= 0.40,0.990,True
+Tier 1,Mode A intra-group distance beats random at p <= 0.05,"0.460 vs 7.473, p=0.010",True
+Tier 1,Mode B wins on >= 2 diversity/balance metrics,5 metrics,True
+Tier 2,Mode B wins on >= 4 diversity/balance metrics,5 metrics,True
+Tier 2,Numeric outcome_balance is non-zero,0.375,True
+Tier 2,Bootstrap ARI >= 0.50,0.990,True

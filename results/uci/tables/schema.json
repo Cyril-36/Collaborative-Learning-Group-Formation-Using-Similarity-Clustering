@@ -1,0 +1,59 @@
+{
+  "adapter_name": "generic_csv",
+  "categorical_feature_cols": [
+    "sex",
+    "internet"
+  ],
+  "dataset_name": "student-por-clean",
+  "display_cols": [
+    "sex",
+    "address",
+    "internet",
+    "studytime",
+    "absences",
+    "G1",
+    "G3"
+  ],
+  "engagement_col": "absences",
+  "fairness_cols": [
+    "sex",
+    "address"
+  ],
+  "feature_cols": [
+    "studytime",
+    "failures",
+    "absences",
+    "traveltime",
+    "freetime",
+    "goout",
+    "Dalc",
+    "Walc",
+    "health",
+    "Medu",
+    "Fedu",
+    "famrel",
+    "G1",
+    "sex",
+    "internet"
+  ],
+  "id_col": "id_student",
+  "numeric_feature_cols": [
+    "studytime",
+    "failures",
+    "absences",
+    "traveltime",
+    "freetime",
+    "goout",
+    "Dalc",
+    "Walc",
+    "health",
+    "Medu",
+    "Fedu",
+    "famrel",
+    "G1"
+  ],
+  "outcome_col": "G3",
+  "performance_col": "G1",
+  "source_id_col": "learner_id",
+  "stratification_col": null
+}

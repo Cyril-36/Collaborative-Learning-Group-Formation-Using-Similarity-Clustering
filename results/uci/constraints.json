@@ -1,0 +1,24 @@
+{
+  "mode_a": {
+    "size_violations": 0,
+    "cluster_complementarity_violations": 156,
+    "size_penalty": 0.0,
+    "complementarity_penalty": 0.968944099378882,
+    "fairness_penalty": 0.35003588894524773,
+    "engagement_penalty": 0.18504556969683952,
+    "fairness_refinement": "evaluated_only",
+    "engagement_refinement": "evaluated_only",
+    "complementarity_refinement": "not_applied_mode_objective"
+  },
+  "mode_b": {
+    "size_violations": 0,
+    "cluster_complementarity_violations": 0,
+    "size_penalty": 0.0,
+    "complementarity_penalty": 0.0,
+    "fairness_penalty": 0.0985931636212389,
+    "engagement_penalty": 0.0334149700544842,
+    "fairness_refinement": "soft_penalty",
+    "engagement_refinement": "soft_penalty",
+    "complementarity_refinement": "hard_constraint"
+  }
+}

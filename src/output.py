@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from .adapters.base import DatasetSchema
 from .config import DEMO_CACHE, FIGURES, GROUP_SIZE, RESULTS, TABLES, ensure_dirs
 from .plot_style import (
     ACCENT,
@@ -67,36 +68,41 @@ def groups_to_frame(
     labels: np.ndarray,
     groups: list[list[int]],
     features: pd.DataFrame,
+    schema: DatasetSchema | None = None,
 ) -> pd.DataFrame:
     rows = []
     feature_lookup = features.reset_index(drop=True)
+    if schema is not None:
+        display_cols = [col for col in schema.display_cols if col in feature_lookup.columns]
+    else:
+        display_cols = [
+            col for col in [
+                "total_clicks",
+                "weighted_score",
+                "imd_band_ord",
+                "collaborative_clicks",
+                "collaboration_click_ratio",
+                "final_result",
+            ]
+            if col in feature_lookup.columns
+        ]
     for group_id, members in enumerate(groups, start=1):
         for idx in members:
             row = {
                 "id_student": ids[idx],
                 "group_id": group_id,
                 "cluster": int(labels[idx]),
-                "total_clicks": feature_lookup.loc[idx, "total_clicks"]
-                if "total_clicks" in feature_lookup.columns
-                else np.nan,
-                "weighted_score": feature_lookup.loc[idx, "weighted_score"]
-                if "weighted_score" in feature_lookup.columns
-                else np.nan,
-                "imd_band_ord": feature_lookup.loc[idx, "imd_band_ord"]
-                if "imd_band_ord" in feature_lookup.columns
-                else np.nan,
             }
-            for col in ["collaborative_clicks", "collaboration_click_ratio", "final_result"]:
-                if col in feature_lookup.columns:
-                    row[col] = feature_lookup.loc[idx, col]
+            for col in display_cols:
+                row[col] = feature_lookup.loc[idx, col]
             rows.append(row)
     return pd.DataFrame(rows)
 
 
 def write_pipeline_diagram(path: Path) -> None:
     labels = [
-        "OULAD CSVs",
-        "Ingest",
+        "Learner dataset",
+        "Adapter",
         "Features",
         "Preprocess",
         "Reducers",
@@ -620,9 +626,11 @@ def write(
     run_metadata: dict[str, Any] | None = None,
     cache_dir: Path = DEMO_CACHE,
     columns: list[str] | None = None,
+    schema: DatasetSchema | None = None,
 ) -> None:
     ensure_dirs()
     cache_dir.mkdir(parents=True, exist_ok=True)
+    write_global_artifacts = cache_dir.resolve() == DEMO_CACHE.resolve()
 
     features.to_parquet(cache_dir / "features.parquet", index=False)
     np.save(cache_dir / "X_scaled.npy", X_scaled)
@@ -640,46 +648,71 @@ def write(
 
     metrics_clean = metrics_df.drop(columns=["labels"], errors="ignore")
     metrics_clean.to_parquet(cache_dir / "config_metrics.parquet", index=False)
-    metrics_clean.to_csv(TABLES / "config_metrics.csv", index=False)
+    if write_global_artifacts:
+        metrics_clean.to_csv(TABLES / "config_metrics.csv", index=False)
     stability_df.to_parquet(cache_dir / "stability.parquet", index=False)
-    stability_df.drop(columns=["bootstrap_ari_dist"], errors="ignore").to_csv(
-        TABLES / "stability.csv",
-        index=False,
-    )
+    if write_global_artifacts:
+        stability_df.drop(columns=["bootstrap_ari_dist"], errors="ignore").to_csv(
+            TABLES / "stability.csv",
+            index=False,
+        )
     ranked.to_parquet(cache_dir / "ranked_configs.parquet", index=False)
     _write_json(cache_dir / "winner.json", winner.to_dict())
 
-    groups_a_df = groups_to_frame(ids, winner_labels, groups_a, features)
-    groups_b_df = groups_to_frame(ids, winner_labels, groups_b, features)
+    groups_a_df = groups_to_frame(ids, winner_labels, groups_a, features, schema)
+    groups_b_df = groups_to_frame(ids, winner_labels, groups_b, features, schema)
     groups_a_df.to_parquet(cache_dir / "groups_mode_a.parquet", index=False)
     groups_b_df.to_parquet(cache_dir / "groups_mode_b.parquet", index=False)
-    groups_a_df.to_csv(TABLES / "groups_mode_a.csv", index=False)
-    groups_b_df.to_csv(TABLES / "groups_mode_b.csv", index=False)
+    if write_global_artifacts:
+        groups_a_df.to_csv(TABLES / "groups_mode_a.csv", index=False)
+        groups_b_df.to_csv(TABLES / "groups_mode_b.csv", index=False)
 
     group_metrics.to_parquet(cache_dir / "group_metrics.parquet", index=False)
-    group_metrics.to_csv(TABLES / "group_metrics.csv", index=False)
+    if write_global_artifacts:
+        group_metrics.to_csv(TABLES / "group_metrics.csv", index=False)
     if random_baseline_metrics is not None:
         random_baseline_metrics.to_parquet(cache_dir / "random_baseline_metrics.parquet", index=False)
-        random_baseline_metrics.to_csv(TABLES / "random_baseline_metrics.csv", index=False)
+        if write_global_artifacts:
+            random_baseline_metrics.to_csv(TABLES / "random_baseline_metrics.csv", index=False)
     if group_significance is not None:
         group_significance.to_parquet(cache_dir / "group_significance.parquet", index=False)
-        group_significance.to_csv(TABLES / "group_significance.csv", index=False)
+        if write_global_artifacts:
+            group_significance.to_csv(TABLES / "group_significance.csv", index=False)
     if cluster_summary is not None:
         cluster_summary.to_parquet(cache_dir / "cluster_summary.parquet", index=False)
-        cluster_summary.to_csv(TABLES / "cluster_summary.csv", index=False)
+        if write_global_artifacts:
+            cluster_summary.to_csv(TABLES / "cluster_summary.csv", index=False)
 
+    if schema is not None:
+        _write_json(cache_dir / "schema.json", schema.to_dict())
+
+    dataset_name = schema.dataset_name if schema is not None else winner.get("dataset_name", "")
+    adapter_name = schema.adapter_name if schema is not None else winner.get("adapter_name", "")
     meta = {
         "n_learners": int(len(ids)),
-        "n_features": int(
-            len([col for col in features.columns if col not in {"id_student", "final_result"}])
-        ),
+        "n_features": int(len(columns) if columns is not None else len([col for col in features.columns if col != "id_student"])),
         "n_groups": int(len(groups_b)),
         "group_size": GROUP_SIZE,
+        "dataset_name": dataset_name,
+        "adapter_name": adapter_name,
         "presentation": f"{winner.get('presentation_module', '')}_{winner.get('presentation_code', '')}".strip("_"),
         "winner_config": winner.get("config_id"),
         "winner_reducer": winner.get("reducer"),
         "winner_clusterer": winner.get("clusterer"),
     }
+    if schema is not None:
+        meta.update(
+            {
+                "source_id_col": schema.source_id_col,
+                "id_col": schema.id_col,
+                "fairness_cols": schema.fairness_cols,
+                "engagement_col": schema.engagement_col,
+                "performance_col": schema.performance_col,
+                "outcome_col": schema.outcome_col,
+                "stratification_col": schema.stratification_col,
+                "display_cols": schema.display_cols,
+            }
+        )
     if run_metadata:
         meta.update(run_metadata)
     _write_json(cache_dir / "meta.json", meta)
@@ -690,21 +723,22 @@ def write(
         _write_json(cache_dir / "columns.json", columns)
 
     write_pipeline_diagram(cache_dir / "pipeline_diagram.png")
-    write_figures(
-        metrics_clean,
-        stability_df,
-        winner_labels,
-        reductions.get("umap_2d", reductions.get("pca", X_scaled[:, :2])),
-        group_metrics,
-        winner,
-        columns=columns,
-    )
+    if write_global_artifacts:
+        write_figures(
+            metrics_clean,
+            stability_df,
+            winner_labels,
+            reductions.get("umap_2d", reductions.get("pca", X_scaled[:, :2])),
+            group_metrics,
+            winner,
+            columns=columns,
+        )
 
-    # Graphviz diagrams (fig1/4/5/6)
-    try:
-        from .diagrams import render_all
-        render_all(FIGURES)
-    except ImportError:
-        pass  # graphviz not installed — skip flowcharts
+        # Graphviz diagrams (fig1/4/5/6)
+        try:
+            from .diagrams import render_all
+            render_all(FIGURES)
+        except ImportError:
+            pass  # graphviz not installed — skip flowcharts
 
-    write_report(RESULTS / "pipeline_report.md", winner, ranked, group_metrics, constraints)
+        write_report(RESULTS / "pipeline_report.md", winner, ranked, group_metrics, constraints)

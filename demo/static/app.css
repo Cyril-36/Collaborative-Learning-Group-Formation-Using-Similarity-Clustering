@@ -1,170 +1,390 @@
 /* ========================================================================
-   INT-396 visual system — Variant B (Stripe Press)
-   Locked 2026-04-29 in design.md §1.
+   INT-396 visual system — Linear / Vercel anchor
+   Anchor decided 2026-05-09. Previous Stripe Press CSS preserved as
+   demo/static/app.stripe.css.bak (cp it back to revert).
 
    Loaded once at the top of demo/app.py via st.markdown(...) injection.
-   Browser-side fonts pulled from rsms.me + Google Fonts CDN; matplotlib
-   PNGs use the bundled assets/fonts/*.ttf via plot_style._register_bundled_fonts.
+   Browser-side fonts pulled from Google Fonts CDN; matplotlib PNGs use
+   the bundled assets/fonts/*.ttf via plot_style._register_bundled_fonts.
+
+   Design discipline:
+     1. Single accent (--accent: #22D3EE) reserved for SIGNIFICANCE only —
+        winning config row, p ≤ 0.05 cells, predicted-cluster halo,
+        active-selection. Everything else is grayscale.
+     2. Type sized for ~3-5 m projection: body ≥ 16px, axis ≥ 14px,
+        primary metrics 32-40px. No 12px text anywhere.
+     3. Generous spacing — Streamlit defaults are too cramped for
+        projector use; padding, margins, gaps all dialled up.
    ======================================================================== */
 
 @import url('https://rsms.me/inter/inter.css');
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Source+Serif+4:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ---- Design tokens (CSS variables) ---------------------------------- */
+:root {
+  --bg:             #08090A;
+  --surface:        #101113;
+  --surface-raised: #16171A;
+  --rule:           #1F2023;
+  --rule-subtle:    #16171A;
+  --ink:            #F4F4F5;
+  --ink-muted:      #A1A1AA;
+  --ink-faint:      #71717A;
+  --accent:         #22D3EE;
+  --accent-dim:     #0E7490;
+  --accent-bg:      rgba(34, 211, 238, 0.10);
+  --positive:       #34D399;
+  --negative:       #F87171;
+}
 
 /* ---- Body / global -------------------------------------------------- */
 html, body, [class*="css"] {
-  font-family: 'Source Serif 4', Georgia, serif;
-  color: #0A0A0A;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;        /* tabular figures */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-feature-settings: 'tnum' 1, 'lnum' 1, 'cv11' 1;   /* tabular figures + Inter v4 single-storey g */
   font-variant-numeric: tabular-lining;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Generous container padding — Streamlit's default 1rem top is too cramped
+   for projector demo. */
+.main .block-container {
+  padding-top:    2.5rem !important;
+  padding-bottom: 4rem  !important;
+  padding-left:   3rem  !important;
+  padding-right:  3rem  !important;
+  max-width:      1400px;
 }
 
 /* ---- Headings ------------------------------------------------------- */
+/* Linear discipline: weight + size carry hierarchy, no decorative borders. */
 h1, h2, h3,
 .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
 [data-testid="stHeading"] h1,
 [data-testid="stHeading"] h2,
 [data-testid="stHeading"] h3 {
-  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
-  letter-spacing: 0;             /* dropped Stripe-press negative tracking — too cramped at Streamlit sizes */
-  font-weight: 600;
-  color: #0A0A0A;
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.011em;
+  color: var(--ink);
 }
 
 h1, .stMarkdown h1 {
   font-size: 40px;
-  line-height: 1.15;
-  margin-bottom: 8px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  margin-bottom: 12px;
 }
 
 h2, .stMarkdown h2 {
-  font-size: 24px;
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1.2;
-  margin-top: 48px;
-  padding-left: 12px;
-  border-left: 3px solid #C8553D;        /* single accent — section opener */
+  margin-top: 56px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
 }
 
 h3, .stMarkdown h3 {
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1.3;
   margin-top: 32px;
-  color: #525252;
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+
+/* Body paragraphs */
+.stMarkdown p, .stMarkdown li {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
 }
 
 /* ---- Sidebar -------------------------------------------------------- */
 section[data-testid="stSidebar"] {
-  background: #FAFAF7;
-  border-right: 1px solid #E5E5E5;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+}
+section[data-testid="stSidebar"] .block-container {
+  padding-top: 1.5rem !important;
 }
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h3,
 section[data-testid="stSidebar"] .stMarkdown h1,
 section[data-testid="stSidebar"] .stMarkdown h3 {
-  font-size: 18px;
-  letter-spacing: 0;
-  border-left: none;
-  padding-left: 0;
-  margin-top: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: var(--ink-faint);
+  border-bottom: none;
+  padding: 0;
+  margin: 8px 0 12px 0;
+}
+/* Radio-style nav inside sidebar */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  padding: 6px 0;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label[data-checked="true"],
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+  color: var(--ink);
 }
 
 /* ---- Tables / dataframes ------------------------------------------- */
 .stDataFrame, .stTable, .stDataFrame * {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-family: 'JetBrains Mono', SF Mono, Menlo, monospace;
+  font-size: 14px;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   font-variant-numeric: tabular-lining;
+  color: var(--ink);
+}
+.stDataFrame [data-testid="StyledDataFrameResizable"] {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
 }
 
-/* ---- Metric cards --------------------------------------------------- */
+/* ---- Metric cards (the headline number tiles) ----------------------- */
 [data-testid="stMetric"] {
-  background: #FAFAF7;
-  border: 1px solid #E5E5E5;
-  border-radius: 2px;
-  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 20px 24px;
+  transition: border-color 120ms ease;
+}
+[data-testid="stMetric"]:hover {
+  border-color: var(--ink-faint);
 }
 [data-testid="stMetricValue"] {
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 28px !important;
+  font-family: 'JetBrains Mono', SF Mono, monospace !important;
+  font-size: 36px !important;
   font-weight: 500 !important;
-  color: #0A0A0A !important;
+  color: var(--ink) !important;
+  line-height: 1.1 !important;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   font-variant-numeric: tabular-lining;
 }
 [data-testid="stMetricLabel"] {
-  font-family: 'Inter Tight', sans-serif !important;
+  font-family: 'Inter', sans-serif !important;
   text-transform: uppercase;
-  letter-spacing: 0.005em;        /* small caps benefit from a touch of breathing */
-  font-size: 11px !important;
-  color: #525252 !important;
+  letter-spacing: 0.08em;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ink-faint) !important;
+  margin-bottom: 8px !important;
+}
+[data-testid="stMetricDelta"] {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  color: var(--ink-muted) !important;
 }
 
 /* ---- Tabs (underline style, not pills) ------------------------------ */
 .stTabs [data-baseweb="tab-list"] {
-  border-bottom: 1px solid #E5E5E5;
-  gap: 24px;
+  border-bottom: 1px solid var(--rule);
+  gap: 32px;
+  background: transparent;
 }
 .stTabs [data-baseweb="tab"] {
-  font-family: 'Inter Tight', sans-serif;
-  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
   letter-spacing: 0;
   background: transparent !important;
   border-radius: 0 !important;
-  padding: 8px 0 !important;
-  color: #525252;
+  padding: 12px 0 !important;
+  color: var(--ink-muted);
+}
+.stTabs [data-baseweb="tab"]:hover {
+  color: var(--ink);
 }
 .stTabs [aria-selected="true"] {
-  border-bottom: 2px solid #C8553D !important;
-  color: #0A0A0A !important;
+  border-bottom: 2px solid var(--accent) !important;
+  color: var(--ink) !important;
 }
 
 /* ---- Code / pre ----------------------------------------------------- */
 code, pre {
-  background: #FAFAF7 !important;
-  color: #0A0A0A !important;
-  border: 1px solid #E5E5E5;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 13px;
+  font-size: 14px;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+.stCodeBlock {
+  background: var(--surface) !important;
 }
 
 /* ---- Block-quote / pull-quote --------------------------------------- */
 blockquote {
-  border-left: 3px solid #C8553D;
-  padding-left: 16px;
+  border-left: 2px solid var(--accent);
+  padding-left: 20px;
   font-style: normal;
-  color: #525252;
-  font-size: 16px;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 24px 0;
 }
 
 /* ---- Caption / supporting text ------------------------------------- */
 [data-testid="stCaptionContainer"],
 .stCaption {
-  font-family: 'Inter Tight', sans-serif;
-  color: #8A8A8A;
-  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: var(--ink-faint);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 /* ---- Buttons -------------------------------------------------------- */
 .stButton > button {
-  font-family: 'Inter Tight', sans-serif;
-  border-radius: 2px;
-  border: 1px solid #0A0A0A;
-  background: #FFFFFF;
-  color: #0A0A0A;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
   font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 16px;
+  transition: all 120ms ease;
 }
 .stButton > button:hover {
-  background: #FAFAF7;
-  border-color: #C8553D;
+  background: var(--surface-raised);
+  border-color: var(--ink-faint);
+}
+.stButton > button[kind="primary"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+.stButton > button[kind="primary"]:hover {
+  background: #67E8F9;
+  border-color: #67E8F9;
 }
 
-/* ---- Streamlit chrome polish --------------------------------------- */
+/* ---- Inputs (slider, selectbox, text) ------------------------------- */
+.stSlider [data-baseweb="slider"] [role="slider"] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.stSelectbox [data-baseweb="select"] > div {
+  background: var(--surface);
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+/* ---- Radio (used for nav + mode toggle) ----------------------------- */
+.stRadio [role="radiogroup"] {
+  gap: 12px;
+}
+
+/* ---- Streamlit chrome polish (hide what we don't use) -------------- */
 hr {
   border: none;
-  border-top: 1px solid #E5E5E5;
-  margin: 32px 0;
+  border-top: 1px solid var(--rule);
+  margin: 40px 0;
 }
 
-/* Hide the Streamlit "Made with Streamlit" footer + hamburger menu */
-footer { visibility: hidden; }
-#MainMenu { visibility: hidden; }
+/* Kill the Streamlit chrome that screams "demo app" */
+footer                          { visibility: hidden; }
+#MainMenu                       { visibility: hidden; }
+header[data-testid="stHeader"]  { background: transparent; }
+[data-testid="stToolbar"]       { display: none; }
+.viewerBadge_link__1S137        { display: none !important; }
+.styles_viewerBadge__1yB5_      { display: none !important; }
+[data-testid="stDecoration"]    { display: none; }
+
+/* Spinner styling */
+.stSpinner > div {
+  border-top-color: var(--accent) !important;
+}
+
+/* ---- Custom utility classes (used by the rewrite phase) ------------- */
+
+/* Significance badge — only on p ≤ 0.05, winner row, predicted assignment */
+.badge-accent {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Neutral badge — for "stratified", "random", non-significant labels */
+.badge-neutral {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Eyebrow / kicker text above section titles */
+.eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+
+/* Custom hero metric (bigger than st.metric, used on overview) */
+.hero-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 28px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.hero-metric .label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+.hero-metric .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+.hero-metric .footnote {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+.hero-metric.is-accent .value { color: var(--accent); }
+
+/* Subtle row-highlight for "winner" / "selected" rows in tables */
+.row-winner {
+  background: var(--accent-bg) !important;
+  border-left: 2px solid var(--accent) !important;
+}

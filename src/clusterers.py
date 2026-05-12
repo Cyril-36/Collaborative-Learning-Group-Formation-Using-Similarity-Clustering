@@ -39,17 +39,17 @@ def _pick_k_silhouette(X: np.ndarray, fit_fn, k_sweep: list[int] = K_SWEEP):
     return best_k, best_labels
 
 
-def cluster_kmeans(X: np.ndarray):
+def cluster_kmeans(X: np.ndarray, k_sweep: list[int] | None = None):
     def fit(data, k):
         return KMeans(n_clusters=k, n_init=10, random_state=SEED).fit_predict(data)
 
-    k, labels = _pick_k_silhouette(X, fit)
+    k, labels = _pick_k_silhouette(X, fit, k_sweep=k_sweep or K_SWEEP)
     return labels.astype(int), {"k": k, "k_effective": effective_k(labels), "noise_ratio": 0.0}
 
 
-def cluster_gmm(X: np.ndarray):
+def cluster_gmm(X: np.ndarray, k_sweep: list[int] | None = None):
     best_k, best_bic, best_labels = None, np.inf, None
-    for k in K_SWEEP:
+    for k in (k_sweep or K_SWEEP):
         if k >= X.shape[0]:
             continue
         model = GaussianMixture(n_components=k, covariance_type="full", random_state=SEED)
@@ -69,11 +69,11 @@ def cluster_gmm(X: np.ndarray):
     }
 
 
-def cluster_agglo(X: np.ndarray):
+def cluster_agglo(X: np.ndarray, k_sweep: list[int] | None = None):
     def fit(data, k):
         return AgglomerativeClustering(n_clusters=k, linkage="ward").fit_predict(data)
 
-    k, labels = _pick_k_silhouette(X, fit)
+    k, labels = _pick_k_silhouette(X, fit, k_sweep=k_sweep or K_SWEEP)
     return labels.astype(int), {"k": k, "k_effective": effective_k(labels), "noise_ratio": 0.0}
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from .adapters.base import DatasetSchema
 from . import group_eval, group_former
 from .config import GROUP_SIZE, SEED
 
@@ -37,11 +38,12 @@ def random_baseline_distribution(
     G: int = GROUP_SIZE,
     n_runs: int = 100,
     seed: int = SEED,
+    schema: DatasetSchema | None = None,
 ) -> pd.DataFrame:
     rows = []
     for run_idx in range(n_runs):
         groups = group_former.form_random(len(feature_df), G, seed + run_idx)
-        metrics = group_eval.evaluate_all(X_red, labels, groups, feature_df, G)
+        metrics = group_eval.evaluate_all(X_red, labels, groups, feature_df, G, schema=schema)
         metrics["baseline_run"] = run_idx
         rows.append(metrics)
     return pd.DataFrame(rows)
@@ -57,6 +59,7 @@ def compare_to_random(
         col
         for col in random_distribution.columns
         if col != "baseline_run" and pd.api.types.is_numeric_dtype(random_distribution[col])
+        and not random_distribution[col].dropna().empty
     ]
     for _, strategy_row in strategies.iterrows():
         strategy = strategy_row["strategy"]

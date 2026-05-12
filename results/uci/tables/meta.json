@@ -1,0 +1,39 @@
+{
+  "adapter_name": "generic_csv",
+  "bootstrap_b": 30,
+  "bootstrap_frac": 0.8,
+  "cache_dir": "results/uci",
+  "dataset_name": "student-por-clean",
+  "display_cols": [
+    "sex",
+    "address",
+    "internet",
+    "studytime",
+    "absences",
+    "G1",
+    "G3"
+  ],
+  "engagement_col": "absences",
+  "fairness_cols": [
+    "sex",
+    "address"
+  ],
+  "fast_run": false,
+  "group_size": 4,
+  "id_col": "id_student",
+  "max_swap_iters": 500,
+  "n_features": 17,
+  "n_groups": 163,
+  "n_learners": 649,
+  "outcome_col": "G3",
+  "performance_col": "G1",
+  "presentation": "",
+  "random_baselines": 100,
+  "refinement_time_budget": null,
+  "sample_n": null,
+  "source_id_col": "learner_id",
+  "stratification_col": null,
+  "winner_clusterer": "kmeans",
+  "winner_config": "C05",
+  "winner_reducer": "umap"
+}

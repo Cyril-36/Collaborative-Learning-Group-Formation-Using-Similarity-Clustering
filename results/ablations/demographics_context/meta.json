@@ -1,0 +1,37 @@
+{
+  "n_learners": 344,
+  "n_features": 8,
+  "n_groups": 86,
+  "group_size": 4,
+  "dataset_name": "OULAD AAA_2014J",
+  "adapter_name": "oulad",
+  "presentation": "AAA_2014J",
+  "winner_config": "C05",
+  "winner_reducer": "umap",
+  "winner_clusterer": "kmeans",
+  "source_id_col": "id_student",
+  "id_col": "id_student",
+  "fairness_cols": [
+    "imd_band_ord"
+  ],
+  "engagement_col": "total_clicks",
+  "performance_col": "weighted_score",
+  "outcome_col": "final_result",
+  "stratification_col": "imd_band_ord",
+  "display_cols": [
+    "total_clicks",
+    "weighted_score",
+    "imd_band_ord",
+    "collaborative_clicks",
+    "collaboration_click_ratio",
+    "final_result"
+  ],
+  "bootstrap_b": 30,
+  "bootstrap_frac": 0.8,
+  "random_baselines": 100,
+  "sample_n": null,
+  "fast_run": false,
+  "cache_dir": "results/ablations/demographics_context",
+  "max_swap_iters": 500,
+  "refinement_time_budget": null
+}

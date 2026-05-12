@@ -1,0 +1,10 @@
+[
+  "age_band_ord",
+  "imd_band_ord",
+  "highest_education_ord",
+  "disability_bin",
+  "gender_M",
+  "num_prev_attempts",
+  "studied_credits",
+  "registration_day"
+]

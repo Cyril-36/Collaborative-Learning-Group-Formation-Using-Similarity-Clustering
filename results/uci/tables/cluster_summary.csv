@@ -1,0 +1,4 @@
+cluster,size,top_positive_features,top_negative_features,interpretive_label
+0,216,"sex_M (+1.17z), internet_yes (+0.55z), Walc (+0.38z)","sex_F (-1.17z), internet_no (-0.55z), studytime (-0.22z)","average-engagement, average-performance learners"
+1,283,"sex_F (+0.83z), internet_yes (+0.54z), studytime (+0.21z)","sex_M (-0.83z), internet_no (-0.54z), Walc (-0.23z)","average-engagement, average-performance learners"
+2,150,"internet_no (+1.82z), traveltime (+0.35z), failures (+0.18z)","internet_yes (-1.82z), Medu (-0.49z), Fedu (-0.34z)","average-engagement, average-performance learners"

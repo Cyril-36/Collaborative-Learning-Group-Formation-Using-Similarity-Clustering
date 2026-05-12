@@ -1,13 +1,17 @@
-# INT-396 visual system — Variant B (Stripe Press), locked 2026-04-29.
-# See design.md §1 for the token rationale.
+# INT-396 visual system — Linear/Vercel anchor (dark · clinical · projection-sized).
+# Anchor decided 2026-05-09. Previous Stripe Press tokens preserved as .bak siblings:
+#   src/plot_style_stripe.py.bak
+#   demo/static/app.stripe.css.bak
+#   .streamlit/config.stripe.toml.bak
+# Revert with: cp those .bak files back over their live counterparts.
 
 [theme]
-base                     = "light"
-primaryColor             = "#C8553D"
-backgroundColor          = "#FFFFFF"
-secondaryBackgroundColor = "#FAFAF7"
-textColor                = "#0A0A0A"
-font                     = "serif"
+base                     = "dark"
+primaryColor             = "#22D3EE"   # single accent — significance, winner, active selection
+backgroundColor          = "#08090A"   # near-black, slightly warm (Linear-grade)
+secondaryBackgroundColor = "#101113"   # cards / sidebar surface
+textColor                = "#F4F4F5"   # primary ink
+font                     = "sans serif"
 
 [server]
 runOnSave = true
