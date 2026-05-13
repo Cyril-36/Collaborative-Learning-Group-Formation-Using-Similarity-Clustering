@@ -4,15 +4,6 @@ scikit-learn==1.8.0
 scipy==1.17.1
 joblib==1.5.1
 pyarrow==23.0.1
-matplotlib==3.10.3
 plotly==6.6.0
 streamlit==1.55.0
 umap-learn==0.5.11
-hdbscan==0.8.41
-tqdm>=4.66
-kneed>=0.8
-seaborn>=0.13
-pytest>=8.0
-ipykernel>=6.0
-nbformat>=5.10
-notebook>=7.0
