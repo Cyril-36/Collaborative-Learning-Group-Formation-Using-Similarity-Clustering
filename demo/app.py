@@ -463,13 +463,13 @@ def page_overview() -> None:
     c1.markdown(hero_metric("Students", f"{meta.get('n_learners', 0):,}",
                             f"{meta.get('n_features', 0)} learner signals"), unsafe_allow_html=True)
     c2.markdown(hero_metric("Chosen model", str(winner.get("config_id", "—")),
-                            f"{winner.get('reducer','—')} + {winner.get('clusterer','—')}",
+                            f"{str(winner.get('reducer','—')).upper()} + KMeans",
                             accent=True), unsafe_allow_html=True)
     sil = winner.get("silhouette")
-    c3.markdown(hero_metric("Profile separation", f"{sil:.3f}" if sil else "—",
+    c3.markdown(hero_metric("Silhouette", f"{sil:.3f}" if sil else "—",
                             "higher means cleaner profile groups"), unsafe_allow_html=True)
     ari = winner.get("bootstrap_ari_mean")
-    c4.markdown(hero_metric("Repeatability", f"{ari:.3f}" if ari else "—",
+    c4.markdown(hero_metric("ARI", f"{ari:.3f}" if ari else "—",
                             "same profiles found again and again"), unsafe_allow_html=True)
 
     st.markdown("## Demo path")
@@ -530,7 +530,7 @@ def page_live_predict() -> None:
         "<p style='font-size: 17px; color: var(--ink-muted); max-width: 780px;'>"
         "Choose a sample student type, then move the sliders. The app shows "
         "which learner profile is the closest match and where that student "
-        "would land on the profile map."
+        "would land on the UMAP profile map."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -553,39 +553,41 @@ def page_live_predict() -> None:
         )
         st.caption(
             "Presets fill the full student profile. The sliders are the fields "
-            "you can adjust live. Some small changes may keep the same profile; "
-            "larger changes can move the student."
+            "you can adjust live. Each slider uses a simple 0-10 demo scale: "
+            "0 means low for this class, 10 means high for this class."
         )
 
         # Seed session state for each input the FIRST time it's seen, plus
         # whenever the user changes preset. Streamlit forbids passing both
         # value= and a session-state-set key= to the same widget, so we
         # write into session state, then let widgets read via key= only.
-        def _slider_bounds(spec: Any) -> tuple[float, float, float]:
+        def _raw_bounds(spec: Any) -> tuple[float, float]:
             lo, hi = float(spec.p05), float(spec.p95)
-            step = max((hi - lo) / 100.0, 0.01)
-            return lo, hi, step
+            return lo, hi
 
-        def _snap_to_slider(value: Any, spec: Any) -> float:
-            lo, hi, step = _slider_bounds(spec)
+        def _raw_to_demo_scale(value: Any, spec: Any) -> float:
+            lo, hi = _raw_bounds(spec)
+            if np.isclose(lo, hi):
+                return 5.0
             clipped = max(lo, min(hi, float(value)))
-            snapped = lo + round((clipped - lo) / step) * step
-            return max(lo, min(hi, snapped))
+            return round(10.0 * (clipped - lo) / (hi - lo), 1)
 
-        last_preset_key = "_last_preset"
+        def _demo_scale_to_raw(value: float, spec: Any) -> float:
+            lo, hi = _raw_bounds(spec)
+            return lo + (float(value) / 10.0) * (hi - lo)
+
+        last_preset_key = "_last_preset_0_10"
         preset_changed = st.session_state.get(last_preset_key) != preset_choice
         for fname in fields:
             spec = field_specs[fname]
-            session_key = f"input_{fname}"
+            session_key = f"input10_{fname}"
             if preset_changed or session_key not in st.session_state:
                 if preset_choice in presets:
                     desired = presets[preset_choice].get(fname, spec.median)
                 else:
                     desired = st.session_state.get(session_key, spec.median)
-                # Clip numerics to the slider's allowed range so Streamlit
-                # doesn't reject the value as out-of-bounds.
                 if spec.kind == "numeric" and spec.p05 is not None and spec.p95 is not None:
-                    desired = _snap_to_slider(desired, spec)
+                    desired = _raw_to_demo_scale(desired, spec)
                 st.session_state[session_key] = desired
         st.session_state[last_preset_key] = preset_choice
 
@@ -599,18 +601,23 @@ def page_live_predict() -> None:
             role_str = " · ".join(role) if role else "feature"
             label = f"{friendly_feature_label(fname)}  ·  {friendly_role_label(role_str)}"
 
-            session_key = f"input_{fname}"
+            session_key = f"input10_{fname}"
             if spec.kind == "numeric" and spec.p05 is not None and spec.p95 is not None:
-                lo, hi, step = _slider_bounds(spec)
+                lo, hi = _raw_bounds(spec)
                 if lo == hi:
                     raw_input[fname] = lo
                     continue
-                raw_input[fname] = st.slider(
+                demo_value = st.slider(
                     label,
-                    min_value=lo, max_value=hi, step=step,
+                    min_value=0.0, max_value=10.0, step=0.1,
                     key=session_key,
-                    help=f"Source field: {fname}",
+                    format="%.1f",
+                    help=(
+                        "Demo scale: 0 = low in this class, 10 = high in this class. "
+                        f"Source field: {fname}; raw range {lo:.2f} to {hi:.2f}."
+                    ),
                 )
+                raw_input[fname] = _demo_scale_to_raw(demo_value, spec)
             elif spec.kind == "categorical" and spec.categories:
                 raw_input[fname] = st.selectbox(
                     label,
@@ -756,8 +763,8 @@ def page_live_predict() -> None:
     # --- Simplified assignment map -----------------------------------------
     st.markdown("### Student profile map")
     st.caption(
-        "Each large circle is one learner profile. The cyan dot is the new "
-        "student; the dashed line shows the closest match."
+        "Each large circle is a cluster centroid. The cyan dot is the new "
+        "student; the dashed line shows the nearest centroid in the UMAP space."
     )
 
     X_vis = read_npy("reduced_umap_2d.npy")
@@ -875,8 +882,10 @@ def page_live_predict() -> None:
         st.markdown(
             "- The app fills any hidden fields from the chosen preset, then "
             "uses the same saved model artifacts from the pipeline run.\n"
-            "- It scales the student profile, places it on the learned map, "
-            "and picks the nearest profile center.\n"
+            "- It scales the student profile, projects it with the fitted "
+            "**UMAP** reducer, then assigns it with **KMeans**.\n"
+            "- The assigned profile is the nearest **centroid** in the reduced "
+            "space.\n"
             "- A clear match means the student is close to that profile. "
             "Borderline or weak matches mean the student sits between profiles."
         )
@@ -898,10 +907,9 @@ def page_clustering() -> None:
     st.markdown("# Choose the profile finder")
     st.markdown(
         "<p style='font-size: 17px; color: var(--ink-muted); max-width: 780px;'>"
-        "The system tested twelve ways to find learner profiles. The chosen "
-        "one had to make reasonably clear groups and also stay repeatable when "
-        "the data was resampled. That keeps us from choosing a model just "
-        "because one score looked good once."
+        "The system tested twelve reducer × clusterer combinations. The chosen "
+        "model is UMAP + KMeans: it balances silhouette with bootstrap ARI, so "
+        "we do not choose a model just because one score looked good once."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -910,27 +918,29 @@ def page_clustering() -> None:
     if not win_row.empty:
         w = win_row.iloc[0]
         c1, c2, c3, c4 = st.columns(4)
-        c1.markdown(hero_metric("Separation", f"{w.get('silhouette', 0):.3f}",
+        c1.markdown(hero_metric("Silhouette", f"{w.get('silhouette', 0):.3f}",
                                 "cleaner profile groups", accent=True), unsafe_allow_html=True)
         c2.markdown(hero_metric("Overlap check", f"{w.get('davies_bouldin', 0):.3f}",
                                 "lower means less overlap"), unsafe_allow_html=True)
         c3.markdown(hero_metric("Group clarity", f"{w.get('calinski_harabasz', 0):.0f}",
                                 "higher means clearer groups"), unsafe_allow_html=True)
-        c4.markdown(hero_metric("Repeatability", f"{w.get('bootstrap_ari_mean', 0):.3f}",
+        c4.markdown(hero_metric("ARI", f"{w.get('bootstrap_ari_mean', 0):.3f}",
                                 f"{int(w.get('k', 0))} profiles found", accent=True), unsafe_allow_html=True)
 
     st.markdown("## Models tested")
     st.caption(
         f"The cyan row ({winner_id}) is the model used by the demo. The dotted "
-        f"line below is the minimum repeatability score we required."
+        f"line below is the minimum bootstrap ARI score we required."
     )
     models_plain = pd.DataFrame({
         "Model": joined["config_id"],
-        "Method": joined["reducer"].str.upper() + " + " + joined["clusterer"].str.title(),
+        "Method": joined["reducer"].str.upper() + " + " + joined["clusterer"].map(
+            lambda c: "KMeans" if str(c).lower() == "kmeans" else str(c).upper()
+        ),
         "Profiles": joined["k"].astype(int),
-        "Separation": joined["silhouette"],
+        "Silhouette": joined["silhouette"],
         "Overlap": joined["davies_bouldin"],
-        "Repeatability": joined["bootstrap_ari_mean"],
+        "ARI": joined["bootstrap_ari_mean"],
         "Unassigned learners": joined.get("noise_ratio", 0.0),
     })
     # height tall enough that all 12 configurations fit without virtual-scroll —
@@ -938,9 +948,9 @@ def page_clustering() -> None:
     # the dataframe, and they're not searchable in screen-reader / Cmd-F either.
     st.dataframe(
         style_winner_row(models_plain, winner_id).format({
-            "Separation": "{:.3f}",
+            "Silhouette": "{:.3f}",
             "Overlap": "{:.3f}",
-            "Repeatability": "{:.3f}",
+            "ARI": "{:.3f}",
             "Unassigned learners": "{:.3f}",
         }),
         use_container_width=True, hide_index=True,
@@ -980,15 +990,15 @@ def page_clustering() -> None:
     fig.add_hline(
         y=0.40,
         line_dash="dot", line_color=INK_MUTED, line_width=1.2,
-        annotation_text="minimum repeatability",
+        annotation_text="minimum bootstrap ARI",
         annotation_position="bottom left",
         annotation_font=dict(family="Inter", size=12, color=INK_MUTED),
         annotation_bgcolor=BG,
     )
     fig.update_layout(
         height=480,
-        xaxis_title="Profile separation",
-        yaxis_title="Repeatability",
+        xaxis_title="Silhouette",
+        yaxis_title="ARI",
         margin=dict(l=64, r=24, t=24, b=56),
     )
     st.plotly_chart(fig, use_container_width=True)
